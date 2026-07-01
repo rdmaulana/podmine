@@ -60,7 +60,7 @@ podmine/
 
 * **JWT Authentication**: Secure user registration, login, and refresh token rotation.
 * **Driver-Based AI Integration**:
-  * **LLM**: Structured podcast script generation using Gemini (`gemini-2.0-flash`).
+  * **LLM**: Structured podcast script generation using Gemini (`gemini-3.5-flash`).
   * **TTS**: High-quality natural voice synthesis via ElevenLabs API.
   * **Storage**: Secure media upload and download link generation via Cloudflare R2 (S3 compatible).
 * **HTTP Range Requests**: The `/api/v1/podcasts/:id/stream` endpoint supports chunk-by-chunk asynchronous audio streaming with `206 Partial Content` status.
