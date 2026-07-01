@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@podmine/types": ["packages/types/src/index.ts"],
+      "@podmine/config": ["packages/config/src/index.ts"],
+      "@podmine/database": ["packages/database/src/index.ts"],
+      "@podmine/drivers": ["packages/drivers/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

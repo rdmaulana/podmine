@@ -1,0 +1,13 @@
+{
+  "name": "@podmine/drivers",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.588.0",
+    "@aws-sdk/s3-request-presigner": "^3.588.0",
+    "@google/genai": "^2.10.0",
+    "@podmine/config": "workspace:*",
+    "@podmine/types": "workspace:*"
+  }
+}
