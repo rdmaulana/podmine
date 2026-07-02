@@ -12,7 +12,8 @@ import {
   Download, 
   X, 
   Radio, 
-  Music
+  Music,
+  ChevronDown
 } from 'lucide-react';
 import { api, tokenStorage } from './infrastructure/api';
 import { 
@@ -40,6 +41,7 @@ function PodmineApp() {
   const [currentUser, setCurrentUser] = useState(tokenStorage.getUser());
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'home' | 'my-podcasts'>('home');
+  const [isExpanded, setIsExpanded] = useState(false);
   
   // Modals
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -317,7 +319,7 @@ function PodmineApp() {
 
       {/* Persistent bottom Audio Player */}
       <footer className="bottom-player">
-        <div className="player-info">
+        <div className="player-info" onClick={() => currentPodcast && setIsExpanded(true)} style={{ cursor: currentPodcast ? 'pointer' : 'default' }} title={currentPodcast ? "Klik untuk memperbesar tampilan" : ""}>
           <div className="player-thumbnail">
             <Music size={24} />
           </div>
@@ -379,6 +381,68 @@ function PodmineApp() {
           onEnded={() => setIsPlaying(false)}
         />
       </footer>
+
+      {/* Fullscreen player overlay */}
+      {isExpanded && currentPodcast && (
+        <div className="fullscreen-player">
+          <header className="fullscreen-header">
+            <button className="fullscreen-close-btn" onClick={() => setIsExpanded(false)}>
+              <ChevronDown size={28} />
+            </button>
+            <span className="fullscreen-header-title">Memutar Dari Podcast</span>
+            <div style={{ width: '44px' }}></div> {/* Spacer to center the title */}
+          </header>
+
+          <div className="fullscreen-body">
+            <div className="fullscreen-artwork">
+              <Radio size={96} />
+            </div>
+            
+            <div className="fullscreen-info">
+              <h1 className="fullscreen-title">{currentPodcast.title || 'Tanpa Judul'}</h1>
+              <p className="fullscreen-artist" style={{ color: 'var(--primary)', fontWeight: 700 }}>Host A & Host B</p>
+              <p className="fullscreen-prompt">{currentPodcast.prompt}</p>
+            </div>
+
+            <div className="fullscreen-controls-wrapper">
+              <div className="fullscreen-progress-container">
+                <div className="fullscreen-progress-bar" onClick={handleSeek}>
+                  <div 
+                    className="fullscreen-progress-filled" 
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  ></div>
+                </div>
+                <div className="fullscreen-progress-bar-container">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+
+              <div className="fullscreen-buttons">
+                {currentPodcast.audioUrl ? (
+                  <a 
+                    href={currentPodcast.audioUrl} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="fullscreen-action-btn"
+                    title="Unduh Berkas Audio"
+                  >
+                    <Download size={24} />
+                  </a>
+                ) : (
+                  <div style={{ width: '40px' }}></div>
+                )}
+                
+                <button className="fullscreen-play-pause-btn" onClick={togglePlay}>
+                  {isPlaying ? <Pause size={28} fill="#000" color="#000" /> : <Play size={28} fill="#000" color="#000" style={{ marginLeft: '4px' }} />}
+                </button>
+
+                <div style={{ width: '40px' }}></div> {/* Spacer to align with download */}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Auth Modal (Login / Register) */}
       {showAuthModal && (

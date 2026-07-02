@@ -9,6 +9,7 @@ RUN apk add --no-cache python3 make g++ openjdk11-jre openssl
 COPY package.json bun.lock tsconfig.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/worker/package.json ./apps/worker/
+COPY apps/web/package.json ./apps/web/
 COPY packages/config/package.json ./packages/config/
 COPY packages/database/package.json ./packages/database/
 COPY packages/drivers/package.json ./packages/drivers/
