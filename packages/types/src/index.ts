@@ -32,10 +32,16 @@ export interface JobPayload {
   prompt: string;
 }
 
+export interface DialogueLine {
+  speaker: 'Host A' | 'Host B';
+  text: string;
+}
+
 // Driver Interfaces
 export interface PodcastScript {
   title: string;
-  content: string;
+  content?: string;
+  dialogue?: DialogueLine[];
 }
 
 export interface LLMDriver {

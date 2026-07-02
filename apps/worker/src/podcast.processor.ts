@@ -6,6 +6,47 @@ import { getEnv } from '@podmine/config';
 import { GeminiDriver, ElevenLabsDriver, MacSayDriver, R2Driver } from '@podmine/drivers';
 import { JobPayload } from '@podmine/types';
 
+interface WavParsed {
+  header: Buffer;
+  audioData: Buffer;
+}
+
+function parseWav(buffer: Buffer): WavParsed {
+  let offset = 12; // Start after 'RIFF' + size + 'WAVE'
+  while (offset < buffer.length - 8) {
+    const chunkId = buffer.toString('ascii', offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    if (chunkId === 'data') {
+      const header = buffer.subarray(0, offset + 8);
+      const audioData = buffer.subarray(offset + 8);
+      return { header, audioData };
+    }
+    offset += 8 + chunkSize;
+  }
+  return {
+    header: buffer.subarray(0, Math.min(44, buffer.length)),
+    audioData: buffer.subarray(Math.min(44, buffer.length)),
+  };
+}
+
+function mergeWavBuffers(buffers: Buffer[]): Buffer {
+  if (buffers.length === 0) return Buffer.alloc(0);
+  if (buffers.length === 1) return buffers[0];
+
+  const parsedWavs = buffers.map(buf => parseWav(buf));
+  const finalHeader = Buffer.from(parsedWavs[0].header);
+  const audioParts = parsedWavs.map(pw => pw.audioData);
+  const combinedAudio = Buffer.concat(audioParts);
+
+  // Update RIFF Chunk Size
+  finalHeader.writeUInt32LE(finalHeader.length + combinedAudio.length - 8, 4);
+
+  // Update 'data' Subchunk Size (last 4 bytes of header)
+  finalHeader.writeUInt32LE(combinedAudio.length, finalHeader.length - 4);
+
+  return Buffer.concat([finalHeader, combinedAudio]);
+}
+
 @Processor('podcast-generation')
 export class PodcastProcessor extends WorkerHost {
   private readonly logger = new Logger(PodcastProcessor.name);
@@ -85,16 +126,69 @@ export class PodcastProcessor extends WorkerHost {
       await this.updateJob(dbJob.id, 50, `Script generated: "${script.title}". Starting Text-To-Speech conversion...`);
 
       // Step 2: Text To Speech
-      this.logger.log(`Converting script to audio with ${env.AI_TTS_DRIVER}...`);
-      const audioBuffer = await ttsDriver.synthesize(script.content);
-      this.logger.log(`Audio synthesized successfully. Size: ${audioBuffer.length} bytes`);
+      this.logger.log(`Converting script to conversational audio with ${env.AI_TTS_DRIVER}...`);
+      
+      const dialogueLines = script.dialogue || [];
+      if (dialogueLines.length === 0 && script.content) {
+        dialogueLines.push({ speaker: 'Host A', text: script.content });
+      }
+
+      const segmentBuffers: Buffer[] = [];
+      const totalLines = dialogueLines.length;
+
+      for (let i = 0; i < totalLines; i++) {
+        const line = dialogueLines[i];
+        const progress = 50 + Math.floor((i / totalLines) * 25);
+        await this.updateJob(
+          dbJob.id,
+          progress,
+          `Synthesizing line ${i + 1}/${totalLines} (${line.speaker})...`
+        );
+        this.logger.log(`Synthesizing line ${i + 1}/${totalLines} (${line.speaker}): "${line.text}"`);
+
+        let lineTtsDriver;
+        if (env.AI_TTS_DRIVER === 'elevenlabs') {
+          const voiceId = line.speaker === 'Host A'
+            ? (env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM')
+            : 'pNInz6obpgq5epa57xxz'; // Adam (Host B)
+          
+          if (!env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY is not defined');
+          lineTtsDriver = new ElevenLabsDriver(env.ELEVENLABS_API_KEY, voiceId);
+        } else if (env.AI_TTS_DRIVER === 'say') {
+          const isIndonesian = env.ELEVENLABS_VOICE_ID?.toLowerCase().includes('damayanti');
+          const voiceId = line.speaker === 'Host A'
+            ? (env.ELEVENLABS_VOICE_ID || 'Samantha')
+            : (isIndonesian ? 'Damayanti' : 'Daniel');
+          lineTtsDriver = new MacSayDriver(voiceId);
+        } else {
+          throw new Error(`Unsupported AI_TTS_DRIVER: ${env.AI_TTS_DRIVER}`);
+        }
+
+        const buf = await lineTtsDriver.synthesize(line.text);
+        segmentBuffers.push(buf);
+      }
+
+      // Merge dialogue buffers
+      let audioBuffer: Buffer;
+      if (env.AI_TTS_DRIVER === 'elevenlabs') {
+        audioBuffer = Buffer.concat(segmentBuffers);
+      } else if (env.AI_TTS_DRIVER === 'say') {
+        audioBuffer = mergeWavBuffers(segmentBuffers);
+      } else {
+        throw new Error('Unsupported TTS merger');
+      }
+
+      this.logger.log(`Audio synthesized successfully. Total size: ${audioBuffer.length} bytes`);
       await this.updateJob(dbJob.id, 75, 'Audio synthesized successfully. Uploading to storage...');
 
       // Step 3: Upload to Cloudflare R2
       // Detect audio format (magic bytes) to set correct MIME type and file extension
       let mimeType = 'audio/mpeg';
       let extension = 'mp3';
-      if (audioBuffer.length > 8 && audioBuffer.toString('ascii', 4, 8) === 'ftyp') {
+      if (audioBuffer.length > 12 && audioBuffer.toString('ascii', 0, 4) === 'RIFF' && audioBuffer.toString('ascii', 8, 12) === 'WAVE') {
+        mimeType = 'audio/wav';
+        extension = 'wav';
+      } else if (audioBuffer.length > 8 && audioBuffer.toString('ascii', 4, 8) === 'ftyp') {
         mimeType = 'audio/mp4';
         extension = 'm4a';
       }

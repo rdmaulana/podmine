@@ -17,12 +17,26 @@ export class GeminiDriver implements LLMDriver {
     });
 
     const systemInstructionText = `
-      You are an expert AI Podcast Host. Your job is to write a highly engaging podcast script based on the user's prompt.
+      You are an expert AI Podcast Producer. Your job is to write a highly engaging conversational podcast script between two hosts: Host A and Host B, based on the user's prompt.
       Return the output as a JSON object with the following schema:
       {
         "title": "A catchy, relevant title for the podcast",
-        "content": "The actual spoken content of the podcast. Do not include sound effects (like [music] or [laughter]), speaker tags, or stage directions. Write it exactly as it should be read aloud as a single narration."
+        "dialogue": [
+          {
+            "speaker": "Host A",
+            "text": "First line of dialogue by Host A. Keep it engaging, natural, and conversational."
+          },
+          {
+            "speaker": "Host B",
+            "text": "Response or next line of dialogue by Host B."
+          }
+        ]
       }
+      
+      Constraints:
+      - Always structure the output strictly in this JSON format.
+      - The dialogue must alternate between Host A and Host B in a natural conversation.
+      - Do not include sound effects (like [music] or [laughter]) or stage directions in the text fields. Only the spoken words.
     `;
 
     const result = await model.generateContent({
@@ -41,12 +55,12 @@ export class GeminiDriver implements LLMDriver {
 
     try {
       const parsed = JSON.parse(responseText.trim());
-      if (!parsed.title || !parsed.content) {
-        throw new Error('Invalid JSON structure returned by Gemini');
+      if (!parsed.title || !Array.isArray(parsed.dialogue)) {
+        throw new Error('Invalid JSON structure returned by Gemini: missing title or dialogue array');
       }
       return {
         title: parsed.title,
-        content: parsed.content,
+        dialogue: parsed.dialogue,
       };
     } catch (e: any) {
       console.error('Failed to parse Gemini response as JSON:', responseText);

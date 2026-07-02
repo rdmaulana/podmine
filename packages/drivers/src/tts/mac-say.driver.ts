@@ -15,15 +15,15 @@ export class MacSayDriver implements TTSDriver {
   }
 
   async synthesize(text: string): Promise<Buffer> {
-    const tempFile = path.join(os.tmpdir(), `podmine-say-${Date.now()}.m4a`);
+    const tempFile = path.join(os.tmpdir(), `podmine-say-${Date.now()}.wav`);
     const tempTextFile = path.join(os.tmpdir(), `podmine-say-text-${Date.now()}.txt`);
 
     try {
       // Write prompt text to file to avoid command injection or length issues in CLI shell execution
       await fs.promises.writeFile(tempTextFile, text, 'utf8');
 
-      // Run macOS built-in say command, saving audio as high-quality m4a (AAC)
-      await execAsync(`say -v "${this.voice}" -f "${tempTextFile}" -o "${tempFile}"`);
+      // Run macOS built-in say command, saving audio as high-quality linear PCM WAV
+      await execAsync(`say -v "${this.voice}" --data-format=LEI16@22050 -f "${tempTextFile}" -o "${tempFile}"`);
 
       // Read output file back as raw audio Buffer
       const buffer = await fs.promises.readFile(tempFile);
