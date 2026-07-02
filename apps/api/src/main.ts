@@ -2,12 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Set global prefix and API versioning
   app.setGlobalPrefix('api/v1');
+
+  // Register global interceptor for snake_case formatting
+  app.useGlobalInterceptors(new SnakeCaseInterceptor());
 
   // Set validation pipe for request bodies
   app.useGlobalPipes(
