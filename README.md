@@ -157,7 +157,7 @@ Run the entire production deployment stack (including API, background workers, a
 docker compose up --build -d
 ```
 * **API Swagger Docs**: `http://localhost:3000/docs`
-* **Frontend Dashboard**: `http://localhost:8080` (pillaged with Spotify dark/orange aesthetics)
+* **Frontend Dashboard**: `http://localhost:8081` (pillaged with Spotify dark/orange aesthetics)
 
 ---
 
