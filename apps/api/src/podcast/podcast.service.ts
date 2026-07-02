@@ -100,6 +100,14 @@ export class PodcastService {
       throw new NotFoundException('Podcast audio is not generated yet');
     }
 
+    let key = podcast.audioUrl;
+    if (key.startsWith('http')) {
+      try {
+        const url = new URL(key);
+        key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      } catch {}
+    }
+
     const env = getEnv();
     if (env.STORAGE_DRIVER === 'r2') {
       if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_BUCKET_NAME || !env.R2_ENDPOINT) {
@@ -112,7 +120,7 @@ export class PodcastService {
         endpoint: env.R2_ENDPOINT,
       });
 
-      return storageDriver.getSignedUrl(podcast.audioUrl);
+      return storageDriver.getSignedUrl(key);
     }
 
     throw new Error(`Unsupported STORAGE_DRIVER: ${env.STORAGE_DRIVER}`);
@@ -125,6 +133,14 @@ export class PodcastService {
       throw new NotFoundException('Podcast audio is not generated yet');
     }
 
+    let key = podcast.audioUrl;
+    if (key.startsWith('http')) {
+      try {
+        const url = new URL(key);
+        key = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      } catch {}
+    }
+
     const env = getEnv();
     if (env.STORAGE_DRIVER === 'r2') {
       if (!env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY || !env.R2_BUCKET_NAME || !env.R2_ENDPOINT) {
@@ -137,7 +153,7 @@ export class PodcastService {
         endpoint: env.R2_ENDPOINT,
       });
 
-      return storageDriver.getDownloadStream(podcast.audioUrl, range);
+      return storageDriver.getDownloadStream(key, range);
     }
 
     throw new Error(`Unsupported STORAGE_DRIVER: ${env.STORAGE_DRIVER}`);

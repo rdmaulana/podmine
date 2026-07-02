@@ -72,6 +72,7 @@ export const envSchema = z.object({
   AI_SCRIPT_DRIVER: z.enum(['gemini', 'openai', 'ollama']).default('gemini'),
   AI_TTS_DRIVER: z.enum(['elevenlabs', 'piper', 'kokoro', 'say']).default('elevenlabs'),
   STORAGE_DRIVER: z.enum(['r2', 'local']).default('r2'),
+  R2_PUBLIC_URL: z.string().url().optional(),
 
   // Gemini API
   GEMINI_API_KEY: z.string().optional(),

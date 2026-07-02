@@ -91,17 +91,31 @@ export class PodcastProcessor extends WorkerHost {
       await this.updateJob(dbJob.id, 75, 'Audio synthesized successfully. Uploading to storage...');
 
       // Step 3: Upload to Cloudflare R2
-      const storageKey = `podcasts/${podcastId}.mp3`;
-      this.logger.log(`Uploading audio to R2 storage key: ${storageKey}...`);
-      await storageDriver.upload(storageKey, audioBuffer, 'audio/mpeg');
+      // Detect audio format (magic bytes) to set correct MIME type and file extension
+      let mimeType = 'audio/mpeg';
+      let extension = 'mp3';
+      if (audioBuffer.length > 8 && audioBuffer.toString('ascii', 4, 8) === 'ftyp') {
+        mimeType = 'audio/mp4';
+        extension = 'm4a';
+      }
+
+      const storageKey = `podcasts/${podcastId}.${extension}`;
+      this.logger.log(`Uploading audio to R2 storage key: ${storageKey} (${mimeType})...`);
+      await storageDriver.upload(storageKey, audioBuffer, mimeType);
       this.logger.log(`Audio uploaded successfully.`);
 
       // Step 4: Finalize
+      let dbAudioUrl = storageKey;
+      if (env.R2_PUBLIC_URL) {
+        const baseUrl = env.R2_PUBLIC_URL.endsWith('/') ? env.R2_PUBLIC_URL.slice(0, -1) : env.R2_PUBLIC_URL;
+        dbAudioUrl = `${baseUrl}/${storageKey}`;
+      }
+
       await prisma.podcast.update({
         where: { id: podcastId },
         data: {
           status: 'COMPLETED',
-          audioUrl: storageKey, // We store the storage key instead of public URL for signed URL generation
+          audioUrl: dbAudioUrl,
         },
       });
 
