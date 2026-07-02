@@ -299,17 +299,19 @@ function PodmineApp() {
                   <span className="card-title">{podcast.title || 'Tanpa Judul'}</span>
                   <span className="card-meta" title={podcast.prompt}>{podcast.prompt}</span>
                   
-                  {/* Status Badge & Progress */}
-                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className={`status-badge status-${podcast.status.toLowerCase()}`}>
-                      {podcast.status}
-                    </span>
-                    {podcast.status === 'PROCESSING' && podcast.jobs?.[0] && (
-                      <div style={{ width: '100%', height: '4px', backgroundColor: '#333', borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${podcast.jobs[0].progress}%`, backgroundColor: 'var(--primary)' }}></div>
-                      </div>
-                    )}
-                  </div>
+                  {/* Status Badge & Progress (Only shown in My Podcasts tab) */}
+                  {activeTab === 'my-podcasts' && (
+                    <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span className={`status-badge status-${podcast.status.toLowerCase()}`}>
+                        {podcast.status}
+                      </span>
+                      {podcast.status === 'PROCESSING' && podcast.jobs?.[0] && (
+                        <div style={{ width: '100%', height: '4px', backgroundColor: '#333', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${podcast.jobs[0].progress}%`, backgroundColor: 'var(--primary)' }}></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -382,6 +384,54 @@ function PodmineApp() {
         />
       </footer>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-nav">
+        <div 
+          className={`mobile-nav-item ${activeTab === 'home' ? 'active' : ''}`}
+          onClick={() => setActiveTab('home')}
+        >
+          <Home size={20} />
+          <span>Umpan</span>
+        </div>
+        
+        {currentUser && (
+          <div 
+            className={`mobile-nav-item ${activeTab === 'my-podcasts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('my-podcasts')}
+          >
+            <Music size={20} />
+            <span>Koleksi</span>
+          </div>
+        )}
+
+        <div 
+          className="mobile-nav-item"
+          onClick={() => {
+            if (!currentUser) {
+              setAuthMode('login');
+              setShowAuthModal(true);
+            } else {
+              setShowGenerateModal(true);
+            }
+          }}
+        >
+          <PlusCircle size={20} />
+          <span>Buat</span>
+        </div>
+
+        {currentUser ? (
+          <div className="mobile-nav-item" onClick={handleLogout}>
+            <LogOut size={20} />
+            <span>Keluar</span>
+          </div>
+        ) : (
+          <div className="mobile-nav-item" onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}>
+            <LogIn size={20} />
+            <span>Masuk</span>
+          </div>
+        )}
+      </nav>
+
       {/* Fullscreen player overlay */}
       {isExpanded && currentPodcast && (
         <div className="fullscreen-player">
@@ -448,6 +498,12 @@ function PodmineApp() {
       {showAuthModal && (
         <div className="modal-overlay">
           <div className="modal-content glass">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '8px', width: '100%' }}>
+              <div className="logo" style={{ fontSize: '28px' }}>
+                <Radio size={32} />
+                <span>PODMINE</span>
+              </div>
+            </div>
             <div className="modal-header">
               <h3 className="modal-title">{authMode === 'login' ? 'Masuk' : 'Daftar Akun'}</h3>
               <button className="control-btn" onClick={() => setShowAuthModal(false)}>

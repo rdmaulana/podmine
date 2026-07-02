@@ -131,6 +131,7 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
   text-decoration: none;
@@ -518,17 +519,20 @@
   font-weight: 500;
 }
 
+/* Mobile Navigation Bar */
+.mobile-nav {
+  display: none;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .app-container {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "main"
-      "player";
+    grid-template-areas: "main";
   }
 
   .sidebar {
-    display: none; /* Hide sidebar on mobile, use a top bar or bottom tab if wanted. For simplicity, we just expand main. */
+    display: none;
   }
 
   .header {
@@ -540,16 +544,98 @@
     max-width: 100%;
   }
 
+  .main-content {
+    padding-bottom: 150px; /* leaves room for player + mobile nav */
+  }
+
+  .bottom-player {
+    position: fixed;
+    bottom: 68px; /* sits exactly above the mobile-nav + margin */
+    left: 8px;
+    right: 8px;
+    width: calc(100% - 16px);
+    height: 64px;
+    border-radius: 8px;
+    background-color: rgba(24, 24, 24, 0.95);
+    border: 1px solid var(--border-color);
+    padding: 0 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 150;
+  }
+
   .player-info {
-    width: 40%;
+    width: 60%;
   }
 
   .player-controls {
-    width: 50%;
+    width: 40%;
+    align-items: flex-end;
+  }
+
+  .control-buttons {
+    gap: 0;
+  }
+
+  .progress-container {
+    display: none; /* Hide progress bar on mobile bottom player (expanded fullscreen player handles it!) */
   }
 
   .player-extra {
-    display: none; /* Hide volume controls on mobile */
+    display: none;
+  }
+
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #0c0c0c;
+    border-top: 1px solid var(--border-color);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 200;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    text-decoration: none;
+    flex-grow: 1;
+    height: 100%;
+  }
+
+  .mobile-nav-item.active, .mobile-nav-item:hover {
+    color: var(--text-main);
+  }
+
+  /* Fullscreen Auth Modal on Mobile */
+  .modal-overlay {
+    background-color: var(--bg-nav);
+    padding: 0;
+  }
+
+  .modal-overlay .modal-content {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    border: none;
+    padding: 40px 24px;
+    background: linear-gradient(180deg, #1f120c 0%, var(--bg-base) 100%);
+    justify-content: center;
   }
 }
 
