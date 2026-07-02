@@ -83,6 +83,7 @@ services:
       - R2_BUCKET_NAME=${R2_BUCKET_NAME}
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
 
   # Background Processing Worker Service
   worker:
@@ -117,6 +118,7 @@ services:
       - R2_BUCKET_NAME=${R2_BUCKET_NAME}
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
 
   # Frontend Web Service (SPA served via Nginx)
   web:
@@ -127,7 +129,7 @@ services:
     ports:
       - "8081:80"
     environment:
-      - VITE_API_URL=http://localhost:3002/api/v1
+      - VITE_API_URL=${VITE_API_URL}
 
 volumes:
   mysql_data:

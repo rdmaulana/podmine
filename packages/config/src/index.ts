@@ -64,6 +64,7 @@ for (const key in process.env) {
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
+  FRONTEND_URL: z.string().optional(),
 
   // Database
   DATABASE_URL: z.string().url().default('mysql://root:root@localhost:3306/podmine'),

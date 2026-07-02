@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { SnakeCaseInterceptor } from './common/interceptors/snake-case.interceptor';
+import { getEnv } from '@podmine/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,7 +23,16 @@ async function bootstrap() {
   );
 
   // Enable CORS
-  app.enableCors();
+  const env = getEnv();
+  const allowedOrigins = env.FRONTEND_URL 
+    ? env.FRONTEND_URL.split(',').map(url => url.trim()) 
+    : '*';
+
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: allowedOrigins !== '*',
+  });
 
   // Configure Swagger/OpenAPI
   const config = new DocumentBuilder()
