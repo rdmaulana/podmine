@@ -1,32 +1,39 @@
-# React + TypeScript + Vite
+# @podmine/web 🎨
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A premium Spotify-inspired (Dark & Orange theme) Single Page Application (SPA) dashboard for listening, searching, and generating AI podcasts on the **PODMINE** platform. Built with React, Vite, Bun, and TanStack Query.
 
-Currently, two official plugins are available:
+## ⚡ Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* **Spotify-Inspired Aesthetics**: Premium dark-mode layout with vibrant orange brand accents (`#FF5500`), subtle glassmorphism blur, responsive grid alignments, and smooth micro-animations.
+* **Persistent Bottom Audio Player**: A sticky media player at the bottom that remains playing during page navigation, connected to audio streams asynchronously.
+* **Fullscreen Expanded Player**: Toggles a full-screen playing overlay on mobile and desktop showing large album art, descriptive prompts, progress sliders, and large controls.
+* **Authentication & Generation**: Email & password forms with validation. Podcast generation forms are securely restricted to authenticated users.
+* **Automatic Progress Polling**: TanStack Query automatically polls task endpoints every 3 seconds to update progress bars for active `QUEUED` or `PROCESSING` jobs.
 
-## React Compiler
+## 📐 Clean Architecture Directory
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* `src/domain/`: TypeScript interfaces and model entities (Podcast, Job, User).
+* `src/infrastructure/`: API Client (fetch wrapper with automatic JWT injection) and React Query custom hooks (`usePodcasts`, `useGeneratePodcast`, etc.).
+* `src/presentation/`:
+  * `styles/`: CSS layout grids, theme tokens, and custom styles.
+  * `App.tsx`: Main entrypoint for rendering and UI state coordinates.
 
-## Expanding the Oxlint configuration
+## 🚫 useEffect Ban Policy
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+To keep the UI clean, predictable, and performant:
+* **Zero useEffect hooks are used**.
+* Playback states and media timing are handled via native **Event Handlers** registered directly on the `<audio>` element.
+* Loading, pending, and error states are synchronized using **TanStack Query status variables** (`isLoading`, `isPending`, `isSuccess`).
+* Secondary computations are processed as **Derived States** during renders.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+## 🏃 Commands
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+* **Local Development**:
+  ```bash
+  bun run dev
+  ```
+* **Production Build**:
+  ```bash
+  bun run build
+  bun run preview
+  ```

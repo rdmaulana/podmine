@@ -4,10 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bun](https://img.shields.io/badge/Runtime-Bun-black?logo=bun)](https://bun.sh/)
 [![NestJS](https://img.shields.io/badge/Framework-NestJS-red?logo=nestjs)](https://nestjs.com/)
+[![React](https://img.shields.io/badge/Frontend-React-blue?logo=react)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Container-Docker-blue?logo=docker)](https://www.docker.com/)
 [![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748?logo=prisma)](https://www.prisma.io/)
 
-PODMINE is a modern, open-source backend platform designed for building AI-powered podcast generator applications. Following the **"Bring Your Own AI"** philosophy (Provider Agnostic), this platform abstracts integrations with AI providers (LLM, TTS, Storage) so that developers can switch models or providers at any time through simple `.env` configurations without modifying any core business logic.
+PODMINE is a modern, open-source platform designed for building AI-powered podcast generator applications. Following the **"Bring Your Own AI"** philosophy (Provider Agnostic), this platform abstracts integrations with AI providers (LLM, TTS, Storage) so that developers can switch models or providers (like local Piper TTS vs ElevenLabs) at any time through simple `.env` configurations without modifying any core business logic.
 
 ---
 
@@ -17,21 +18,23 @@ PODMINE implements **Clean Architecture** patterns, strictly separating core bus
 
 ```mermaid
 graph TD
-    Client[Client / Swagger UI] -->|REST API| API[API Gateway: apps/api]
-    API -->|1. Create Record & Queue Job| DB[(MySQL: Prisma)]
-    API -->|2. Push Task| Redis[(Redis: BullMQ)]
+    Client[React Frontend: apps/web] -->|1. REST API| API[API Gateway: apps/api]
+    API -->|2. Create Record & Queue Job| DB[(MySQL: Prisma)]
+    API -->|3. Push Task| Redis[(Redis: BullMQ)]
     
     subgraph Background Worker [apps/worker]
-        Worker[Job Processor] <-->|3. Polls Jobs| Redis
-        Worker -->|4. Request Script| LLM[LLM Driver: Gemini]
-        Worker -->|5. Request Voice| TTS[TTS Driver: ElevenLabs]
-        Worker -->|6. Upload MP3| ST[Storage Driver: Cloudflare R2]
-        Worker -->|7. Update Status & Key| DB
+        Worker[Job Processor] <-->|4. Polls Jobs| Redis
+        Worker -->|5. Request Script| LLM[LLM Driver: Gemini]
+        Worker -->|6. Synth Host A| PiperA[Piper Host A: 5001]
+        Worker -->|7. Synth Host B| PiperB[Piper Host B: 5002]
+        Worker -->|8. WAV Dynamic Merger| WM[WAV byte-level merger]
+        Worker -->|9. Upload Combined Audio| ST[Storage Driver: Cloudflare R2]
+        Worker -->|10. Update Status & Key| DB
     end
 
-    Client -->|8. Request Stream / Download| API
-    API -->|9. Generate Presigned URL| ST
-    API -->|10. Stream Audio Chunk 206| Client
+    Client -->|11. Request Stream / Download| API
+    API -->|12. Generate Presigned URL| ST
+    API -->|13. Stream Audio Chunk 206| Client
 ```
 
 ---
@@ -43,14 +46,17 @@ The monorepo is managed using **Bun Workspaces** for fast dependency installatio
 ```
 podmine/
 ├── apps/
-│   ├── api/             # NestJS REST API Gateway (Auth, Routes, Media Streaming)
-│   └── worker/          # BullMQ background worker (AI Processing Pipeline Orchestrator)
+│   ├── api/             # NestJS REST API Gateway (Auth, Public & Private Routes, Media Streaming)
+│   ├── worker/          # BullMQ background worker (AI Pipeline, local WAV byte-level merger)
+│   └── web/             # React + Vite + TanStack Query Frontend (Spotify-like dark-orange SPA UI)
 ├── packages/
-│   ├── config/          # Centralized configuration schema & validation via Zod
+│   ├── config/          # Centralized configuration schema & validation via Zod (safeguards envs)
 │   ├── database/        # Shared Prisma schema, migrations, and DB client singleton
-│   ├── drivers/         # Extensible driver manager (Gemini, ElevenLabs, Cloudflare R2)
+│   ├── drivers/         # Extensible driver manager (Gemini, Piper, ElevenLabs, Cloudflare R2)
 │   └── types/           # Shared TypeScript interfaces & declarations
-├── docker-compose.yml   # Local environment services (MySQL & Redis)
+├── docker-compose.yml   # Multi-container local environment (MySQL, Redis, Piper TTS A & B, Nginx Web)
+├── Dockerfile           # Multi-stage build for Node/NestJS backend apps
+├── Dockerfile.web       # Multi-stage build for React Vite assets served via Nginx
 └── package.json         # Workspace root package definition
 ```
 
@@ -58,13 +64,13 @@ podmine/
 
 ## ⚡ Core Features
 
-* **JWT Authentication**: Secure user registration, login, and refresh token rotation.
-* **Driver-Based AI Integration**:
-  * **LLM**: Structured podcast script generation using Gemini (`gemini-2.5-flash`).
-  * **TTS**: High-quality natural voice synthesis via ElevenLabs API.
-  * **Storage**: Secure media upload and download link generation via Cloudflare R2 (S3 compatible).
-* **HTTP Range Requests**: The `/api/v1/podcasts/:id/stream` endpoint supports chunk-by-chunk asynchronous audio streaming with `206 Partial Content` status.
-* **BullMQ Queue Management**: Offloads intensive AI generations to isolated worker nodes, keeping the REST API responsive.
+* **Dual-Host Dialogue Pipeline**: Structured script generation (Host A & Host B dialogue) powered by Gemini (`gemini-2.5-flash`).
+* **Local Neural TTS (Piper)**: Dockerized local HTTP Piper speech synthesis (Lessac and Joe voices) running offline without API fees.
+* **Dynamic WAV Header Merger**: Custom byte-level audio parser that merges headers, calculates combined size offsets, and outputs clean Linear PCM wave streams.
+* **Public & Private API Boundaries**:
+  * **Public**: Listing and streaming media endpoints are publicly accessible to support anonymous listeners.
+  * **Private**: Generation is securely guarded by JWT auth.
+* **Spotify-Style Web App**: Premium Dark-Orange React SPA featuring a persistent sticky audio player, full-screen playback expander, prompting form, and real-time generation trackers.
 
 ---
 
@@ -75,10 +81,8 @@ podmine/
 Ensure you have the following installed on your machine:
 * [Bun Runtime](https://bun.sh/) (v1.x or later)
 * [Docker Desktop](https://www.docker.com/) or [OrbStack](https://orbstack.dev/)
-* API credentials for your chosen providers:
-  * Google AI Studio (Gemini API Key)
-  * ElevenLabs (API Key)
-  * Cloudflare R2 (Bucket Name, Access Key ID, Secret Access Key, Endpoint)
+* Google AI Studio API Key (Gemini)
+* Cloudflare R2 Credentials (S3-compatible)
 
 ---
 
@@ -90,25 +94,19 @@ Ensure you have the following installed on your machine:
    cd podmine
    ```
 
-2. **Install Dependencies**:
-   Bun will automatically resolve workspaces and link packages:
+2. **Download Piper TTS Voice Models**:
+   ```bash
+   chmod +x download-models.sh
+   ./download-models.sh
+   ```
+
+3. **Install Workspace Dependencies**:
    ```bash
    bun install
    ```
 
-3. **Start Local Services (Docker)**:
-   Launch the MySQL and Redis containers in the background:
-   ```bash
-   docker compose up -d
-   ```
-   * *Note: Redis runs on port `6380` to avoid conflicts with any local Redis instance on your machine.*
-
 4. **Environment Setup**:
-   Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   Fill in your provider credentials in the newly created `.env` file:
+   Create a `.env` file at the root:
    ```env
    DATABASE_URL="mysql://root:root@localhost:3306/podmine"
    REDIS_HOST="localhost"
@@ -120,9 +118,9 @@ Ensure you have the following installed on your machine:
    GEMINI_API_KEY="AIzaSy..."
 
    # AI TTS Driver
-   AI_TTS_DRIVER="elevenlabs"
-   ELEVENLABS_API_KEY="your-elevenlabs-key"
-   ELEVENLABS_VOICE_ID="21m00Tcm4TlvDq8ikWAM" # Optional Voice ID (Rachel)
+   AI_TTS_DRIVER="piper"
+   PIPER_HOST_A_URL="http://localhost:5001"
+   PIPER_HOST_B_URL="http://localhost:5002"
 
    # Storage Driver
    STORAGE_DRIVER="r2"
@@ -130,31 +128,36 @@ Ensure you have the following installed on your machine:
    R2_SECRET_ACCESS_KEY="your-r2-secret-access"
    R2_BUCKET_NAME="podmine-bucket"
    R2_ENDPOINT="https://<your-account-id>.r2.cloudflarestorage.com"
+   R2_PUBLIC_URL="https://cdn.podmine.xyz"
    ```
 
-5. **Run Database Migrations**:
-   Sync the Prisma schema to your local MySQL database:
+5. **Run DB Migrations**:
    ```bash
-   DATABASE_URL="mysql://root:root@localhost:3306/podmine" bun --cwd packages/database prisma migrate dev --name init
+   bun db:migrate
    ```
 
 ---
 
 ## 🏃 Running the Application
 
-Start the API Gateway and Background Worker side-by-side:
-
-* **Running the API Gateway (apps/api)**:
+### Local Development Mode
+Start the development server for all services concurrently:
+* Run MySQL, Redis, and Piper Speech services:
   ```bash
-  bun dev:api
+  docker compose up -d db redis piper-host-a piper-host-b
   ```
-  * The API will be available at: `http://localhost:3000/api/v1`
-  * Interactive Swagger UI documentation is hosted at: `http://localhost:3000/docs`
+* Start backend and frontend apps locally:
+  * API Gateway: `bun dev:api` (available at `http://localhost:3000`)
+  * Background Worker: `bun dev:worker`
+  * Frontend Web: `bun dev:web` (available at `http://localhost:5173`)
 
-* **Running the Background Worker (apps/worker)**:
-  ```bash
-  bun dev:worker
-  ```
+### Production Docker Compose Mode
+Run the entire production deployment stack (including API, background workers, and Nginx frontend web server):
+```bash
+docker compose up --build -d
+```
+* **API Swagger Docs**: `http://localhost:3000/docs`
+* **Frontend Dashboard**: `http://localhost:8080` (pillaged with Spotify dark/orange aesthetics)
 
 ---
 
@@ -163,31 +166,17 @@ Start the API Gateway and Background Worker side-by-side:
 ### 🔐 Auth Module
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| `POST` | `/api/v1/auth/register` | Register a new user | No |
+| `POST` | `/api/v1/auth/register` | Register a new user with Email | No |
 | `POST` | `/api/v1/auth/login` | Log in and receive tokens | No |
-| `POST` | `/api/v1/auth/refresh` | Refresh an expired access token | No |
 
 ### 🎙️ Podcast Module
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | `POST` | `/api/v1/podcasts/generate` | Queue a new AI podcast generation task | Yes |
-| `GET` | `/api/v1/podcasts` | List all podcasts owned by the user | Yes |
-| `GET` | `/api/v1/podcasts/:id` | Check podcast generation logs & status | Yes |
-| `GET` | `/api/v1/podcasts/:id/download` | Redirect to Cloudflare R2 presigned download URL | Yes |
-| `GET` | `/api/v1/podcasts/:id/stream` | Stream audio supporting HTTP Range Requests | Yes* |
-
-> \* *The `/stream` endpoint accepts token validation from either the header `Authorization: Bearer <token>` or the query parameter `?token=<token>` to easily support native HTML5 `<audio>` players.*
-
----
-
-## 🔌 Extensibility: Adding a New Driver
-
-PODMINE is designed with a pluggable driver layer. Adding a new driver (e.g. an OpenAI LLM driver) is extremely simple:
-
-1. **Define the Interface** (if new) in `packages/types`.
-2. **Create the Driver Class** in `packages/drivers/src/llm/openai.driver.ts` implementing the `LLMDriver` interface.
-3. **Export the Driver** through the package entry point.
-4. Add the driver type option to `packages/config` and conditionally initialize the class in the worker or API applications.
+| `GET` | `/api/v1/podcasts` | List podcasts (public feed or owner filtered) | No / Optional |
+| `GET` | `/api/v1/podcasts/:id` | Check podcast generation logs & status | No |
+| `GET` | `/api/v1/podcasts/:id/download` | Redirect to Cloudflare R2 download URL | No |
+| `GET` | `/api/v1/podcasts/:id/stream` | Stream audio supporting HTTP Range Requests | No |
 
 ---
 
