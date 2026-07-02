@@ -38,8 +38,6 @@ services:
       context: .
       dockerfile: Dockerfile.piper
     restart: always
-    volumes:
-      - ./models:/app/models
     command: [ "-m", "/app/models/en_US-lessac-medium.onnx" ]
     ports:
       - "5001:5000"
@@ -50,8 +48,6 @@ services:
       context: .
       dockerfile: Dockerfile.piper
     restart: always
-    volumes:
-      - ./models:/app/models
     command: [ "-m", "/app/models/en_US-joe-medium.onnx" ]
     ports:
       - "5002:5000"

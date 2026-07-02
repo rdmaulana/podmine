@@ -3,6 +3,7 @@ FROM python:3.11-slim
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Piper TTS and HTTP server dependencies (requires flask)
@@ -11,6 +12,12 @@ RUN pip install --no-cache-dir piper-tts flask
 # Create models directory
 WORKDIR /app
 RUN mkdir -p /app/models
+
+# Download ONNX voice models directly into the image
+RUN curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx" -o "/app/models/en_US-lessac-medium.onnx" && \
+    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json" -o "/app/models/en_US-lessac-medium.onnx.json" && \
+    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/joe/medium/en_US-joe-medium.onnx" -o "/app/models/en_US-joe-medium.onnx" && \
+    curl -L "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/joe/medium/en_US-joe-medium.onnx.json" -o "/app/models/en_US-joe-medium.onnx.json"
 
 # Expose port
 EXPOSE 5000
