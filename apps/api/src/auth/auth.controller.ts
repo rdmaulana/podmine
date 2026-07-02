@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto, AuthResponseDto } from './dto/auth.dto';
@@ -6,14 +6,16 @@ import { RegisterDto, LoginDto, RefreshTokenDto, AuthResponseDto } from './dto/a
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: HttpStatus.CREATED, type: AuthResponseDto, description: 'User successfully registered' })
   @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email is already registered' })
   async register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
-    return this.authService.register(dto);
+    // TODO: Add registration (for now we don't accept signups)
+    // return this.authService.register(dto);
+    throw new ForbiddenException('Registration is currently closed');
   }
 
   @Post('login')
