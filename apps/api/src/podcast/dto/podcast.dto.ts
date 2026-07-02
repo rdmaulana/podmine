@@ -31,4 +31,14 @@ export class PodcastQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
+
+  @ApiProperty({ required: false, enum: ['QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED'], description: 'Filter podcasts by status' })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiProperty({ required: false, example: 'true', description: 'Filter only podcasts created by the current logged-in user' })
+  @IsOptional()
+  @IsString()
+  myPodcasts?: string;
 }

@@ -40,12 +40,15 @@ export class PodcastService {
   }
 
   async findAll(query: PodcastQueryDto, userId?: string) {
-    const { search, page = 1, limit = 10 } = query;
+    const { search, page = 1, limit = 10, status, myPodcasts } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (userId) {
+    if (myPodcasts === 'true' && userId) {
       where.userId = userId;
+    }
+    if (status) {
+      where.status = status;
     }
 
     if (search) {

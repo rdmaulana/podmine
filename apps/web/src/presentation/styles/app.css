@@ -467,19 +467,21 @@
 }
 
 .form-group input, .form-group textarea {
-  background-color: #1a1a1a;
-  border: 1px solid var(--border-color);
+  background-color: #181818;
+  border: 1px solid #333;
   border-radius: 8px;
-  padding: 12px;
+  padding: 14px;
   color: #fff;
   font-size: 14px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .form-group input:focus, .form-group textarea:focus {
   border-color: var(--primary);
+  background-color: #202020;
+  box-shadow: 0 0 0 2px rgba(255, 85, 0, 0.25);
 }
 
 .form-group textarea {

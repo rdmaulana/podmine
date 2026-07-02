@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 
-export function usePodcasts(search?: string, page = 1) {
+export function usePodcasts(search?: string, page = 1, status?: string, myPodcasts?: string) {
   return useQuery({
-    queryKey: ['podcasts', search, page],
-    queryFn: () => api.listPodcasts(search, page),
+    queryKey: ['podcasts', search, page, status, myPodcasts],
+    queryFn: () => api.listPodcasts(search, page, 20, status, myPodcasts),
     placeholderData: (prev) => prev, // Smooth page transitions
     refetchInterval: (query) => {
       // If any podcast in the list is still QUEUED or PROCESSING, poll every 3 seconds to update progress
@@ -44,12 +44,12 @@ export function useGeneratePodcast() {
 
 export function useLogin() {
   return useMutation({
-    mutationFn: ({ username, password }: any) => api.login(username, password),
+    mutationFn: ({ email, password }: any) => api.login(email, password),
   });
 }
 
 export function useRegister() {
   return useMutation({
-    mutationFn: ({ username, password }: any) => api.register(username, password),
+    mutationFn: ({ email, password }: any) => api.register(email, password),
   });
 }

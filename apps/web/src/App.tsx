@@ -58,7 +58,12 @@ function PodmineApp() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Queries & Mutations
-  const { data: podcastData, isLoading } = usePodcasts(search, 1);
+  const { data: podcastData, isLoading } = usePodcasts(
+    search,
+    1,
+    activeTab === 'home' ? 'COMPLETED' : undefined,
+    activeTab === 'my-podcasts' ? 'true' : undefined
+  );
   const generateMutation = useGeneratePodcast();
   const loginMutation = useLogin();
   const registerMutation = useRegister();
@@ -67,11 +72,11 @@ function PodmineApp() {
   const handleAuth = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const username = formData.get('username') as string;
+    const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     const mutation = authMode === 'login' ? loginMutation : registerMutation;
-    mutation.mutate({ username, password }, {
+    mutation.mutate({ email, password }, {
       onSuccess: (user) => {
         setCurrentUser(user);
         setShowAuthModal(false);
@@ -163,13 +168,8 @@ function PodmineApp() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Filter list by tab
-  const podcasts = (podcastData?.data || []).filter(p => {
-    if (activeTab === 'my-podcasts') {
-      return p.userId === currentUser?.userId;
-    }
-    return true;
-  });
+  // Filter list by tab (now handled server-side)
+  const podcasts = podcastData?.data || [];
 
   return (
     <div className="app-container">
@@ -457,8 +457,8 @@ function PodmineApp() {
             
             <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="form-group">
-                <label htmlFor="username">Username</label>
-                <input type="text" id="username" name="username" required placeholder="Masukkan username..." />
+                <label htmlFor="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="Masukkan alamat email..." />
               </div>
               <div className="form-group">
                 <label htmlFor="password">Password</label>

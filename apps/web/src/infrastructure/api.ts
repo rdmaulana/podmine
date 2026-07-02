@@ -50,16 +50,34 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   return response.json() as Promise<T>;
 }
 
+const decodeJwt = (token: string) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
+
 export const api = {
   // Auth
-  register: async (username: string, password: string): Promise<User> => {
-    const res = await apiRequest<{ access_token: string; user: { id: string; username: string } }>('/auth/register', {
+  register: async (email: string, password: string): Promise<User> => {
+    const res = await apiRequest<{ access_token: string; refresh_token: string }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     });
+    
+    const decoded = decodeJwt(res.access_token);
     const user: User = {
-      userId: res.user.id,
-      username: res.user.username,
+      userId: decoded?.userId || '',
+      username: decoded?.email || email,
       accessToken: res.access_token,
     };
     tokenStorage.setToken(user.accessToken);
@@ -67,14 +85,16 @@ export const api = {
     return user;
   },
 
-  login: async (username: string, password: string): Promise<User> => {
-    const res = await apiRequest<{ access_token: string; user: { id: string; username: string } }>('/auth/login', {
+  login: async (email: string, password: string): Promise<User> => {
+    const res = await apiRequest<{ access_token: string; refresh_token: string }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     });
+    
+    const decoded = decodeJwt(res.access_token);
     const user: User = {
-      userId: res.user.id,
-      username: res.user.username,
+      userId: decoded?.userId || '',
+      username: decoded?.email || email,
       accessToken: res.access_token,
     };
     tokenStorage.setToken(user.accessToken);
@@ -87,12 +107,13 @@ export const api = {
     tokenStorage.clearUser();
   },
 
-  // Podcasts
-  listPodcasts: async (search?: string, page = 1, limit = 20): Promise<PodcastListResponse> => {
+  listPodcasts: async (search?: string, page = 1, limit = 20, status?: string, myPodcasts?: string): Promise<PodcastListResponse> => {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     params.append('page', page.toString());
     params.append('limit', limit.toString());
+    if (status) params.append('status', status);
+    if (myPodcasts) params.append('myPodcasts', myPodcasts);
     
     return apiRequest<PodcastListResponse>(`/podcasts?${params.toString()}`);
   },
