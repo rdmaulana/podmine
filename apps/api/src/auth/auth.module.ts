@@ -4,6 +4,9 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { getEnv } from '@podmine/config';
 
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { OptionalJwtAuthGuard } from './optional-jwt-auth.guard';
+
 @Global() // Make JwtService and JwtAuthGuard globally available
 @Module({
   imports: [
@@ -13,8 +16,8 @@ import { getEnv } from '@podmine/config';
       signOptions: { expiresIn: getEnv().JWT_EXPIRES_IN as any },
     }),
   ],
-  providers: [AuthService],
+  providers: [AuthService, JwtAuthGuard, OptionalJwtAuthGuard],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, JwtModule, JwtAuthGuard, OptionalJwtAuthGuard],
 })
 export class AuthModule {}

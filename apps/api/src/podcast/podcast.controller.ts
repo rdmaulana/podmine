@@ -4,18 +4,20 @@ import { Response, Request } from 'express';
 import { PodcastService } from './podcast.service';
 import { GeneratePodcastDto, PodcastQueryDto } from './dto/podcast.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { CurrentUser, UserPayload } from '../auth/current-user.decorator';
 
 @ApiTags('Podcasts')
 @Controller('podcasts')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT-auth')
+@UseGuards(OptionalJwtAuthGuard)
 export class PodcastController {
   constructor(private readonly podcastService: PodcastService) {}
 
   @Post('generate')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Trigger AI podcast generation' })
+  @ApiOperation({ summary: 'Trigger AI podcast generation (requires login)' })
   @ApiResponse({ status: HttpStatus.ACCEPTED, description: 'Podcast generation task queued' })
   async generate(
     @Body() dto: GeneratePodcastDto,
@@ -25,13 +27,13 @@ export class PodcastController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all user podcasts' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'List of user podcasts returned successfully' })
+  @ApiOperation({ summary: 'Get all podcasts (optionally filtered by user if logged in)' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'List of podcasts returned successfully' })
   async findAll(
     @Query() query: PodcastQueryDto,
-    @CurrentUser() user: UserPayload,
+    @CurrentUser() user?: UserPayload,
   ) {
-    return this.podcastService.findAll(query, user.userId);
+    return this.podcastService.findAll(query, user?.userId);
   }
 
   @Get(':id')
@@ -40,9 +42,9 @@ export class PodcastController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Podcast not found' })
   async findOne(
     @Param('id') id: string,
-    @CurrentUser() user: UserPayload,
+    @CurrentUser() user?: UserPayload,
   ) {
-    return this.podcastService.findOne(id, user.userId);
+    return this.podcastService.findOne(id, user?.userId);
   }
 
   @Get(':id/download')
@@ -51,10 +53,10 @@ export class PodcastController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Podcast or audio file not found' })
   async download(
     @Param('id') id: string,
-    @CurrentUser() user: UserPayload,
-    @Res() res: any,
+    @CurrentUser() user?: UserPayload,
+    @Res() res?: any,
   ) {
-    const downloadUrl = await this.podcastService.getDownloadUrl(id, user.userId);
+    const downloadUrl = await this.podcastService.getDownloadUrl(id, user?.userId);
     return res.redirect(HttpStatus.FOUND, downloadUrl);
   }
 
@@ -66,14 +68,14 @@ export class PodcastController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Podcast or audio file not found' })
   async stream(
     @Param('id') id: string,
-    @CurrentUser() user: UserPayload,
-    @Req() req: any,
-    @Res() res: any,
+    @CurrentUser() user?: UserPayload,
+    @Req() req?: any,
+    @Res() res?: any,
   ) {
     const range = req.headers.range;
     const { stream, contentType, contentLength, contentRange } = await this.podcastService.getStream(
       id,
-      user.userId,
+      user?.userId,
       range,
     );
 

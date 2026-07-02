@@ -39,11 +39,14 @@ export class PodcastService {
     return podcast;
   }
 
-  async findAll(query: PodcastQueryDto, userId: string) {
+  async findAll(query: PodcastQueryDto, userId?: string) {
     const { search, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { userId };
+    const where: any = {};
+    if (userId) {
+      where.userId = userId;
+    }
 
     if (search) {
       where.OR = [
@@ -71,7 +74,7 @@ export class PodcastService {
     };
   }
 
-  async findOne(id: string, userId: string) {
+  async findOne(id: string, userId?: string) {
     const podcast = await prisma.podcast.findUnique({
       where: { id },
       include: {
@@ -86,14 +89,10 @@ export class PodcastService {
       throw new NotFoundException(`Podcast with ID ${id} not found`);
     }
 
-    if (podcast.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this podcast');
-    }
-
     return podcast;
   }
 
-  async getDownloadUrl(id: string, userId: string): Promise<string> {
+  async getDownloadUrl(id: string, userId?: string): Promise<string> {
     const podcast = await this.findOne(id, userId);
 
     if (podcast.status !== 'COMPLETED' || !podcast.audioUrl) {
@@ -126,7 +125,7 @@ export class PodcastService {
     throw new Error(`Unsupported STORAGE_DRIVER: ${env.STORAGE_DRIVER}`);
   }
 
-  async getStream(id: string, userId: string, range?: string) {
+  async getStream(id: string, userId?: string, range?: string) {
     const podcast = await this.findOne(id, userId);
 
     if (podcast.status !== 'COMPLETED' || !podcast.audioUrl) {

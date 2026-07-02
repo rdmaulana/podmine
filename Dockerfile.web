@@ -1,0 +1,26 @@
+# Multi-stage Dockerfile to build and serve static React + Vite Frontend
+FROM oven/bun:alpine AS builder
+WORKDIR /app
+
+# Copy workspace configurations and package files
+COPY package.json bun.lock tsconfig.json ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/web/package.json ./apps/web/
+COPY packages/config/package.json ./packages/config/
+COPY packages/database/package.json ./packages/database/
+COPY packages/drivers/package.json ./packages/drivers/
+COPY packages/types/package.json ./packages/types/
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source code and build
+COPY . .
+RUN bun run --cwd apps/web build
+
+# Serve built static assets via Nginx
+FROM nginx:alpine
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

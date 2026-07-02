@@ -48,3 +48,21 @@ Daftar aturan dan pedoman pengembangan untuk memastikan codebase tetap **Clean**
 * **Error Handling**:
   * Selalu tangkap error pada operasi async/I/O (database, external API, file system) dan gunakan custom exception yang informatif.
   * Jangan menelan error tanpa logging (`console.error` or Logger NestJS).
+
+---
+
+## 5. Frontend Development Guidelines (React + Vite + Bun)
+
+* **Stack**: Menggunakan React + Vite (dijalankan menggunakan Bun), dengan TanStack Query (React Query) untuk manajemen state server.
+* **Clean Architecture**:
+  * **Domain Layer**: Definisi tipe/model data, business rules, dan abstractions/interfaces.
+  * **Infrastructure Layer**: Implementasi API client (misalnya menggunakan Axios/Fetch), cache management, local storage, dan driver.
+  * **Presentation Layer**: Komponen React (UI), custom hooks untuk UI state, router, dan layouting.
+* **useEffect Ban**:
+  * Hindari penggunaan `useEffect` sebisa mungkin.
+  * Gunakan **event handlers** untuk aksi langsung, **derived state** untuk nilai turunan, atau status bawaan dari **TanStack Query** (seperti `isLoading`, `isSuccess`) untuk reaksi berbasis server state.
+* **Design & Aesthetics**:
+  * Tema ala **Spotify** (sleek dark mode) dengan aksen warna **Hitam & Oranye** yang premium.
+  * Layout wajib **mobile-friendly (responsif)** menggunakan modern CSS/Flexbox/Grid.
+  * Gunakan tipografi modern (e.g. Inter/Outfit), glassmorphism, visual blur, hover effects, dan transisi/animasi mikro yang halus.
+  * Implementasikan pemutar audio sticky di bagian bawah halaman untuk kenyamanan mendengarkan secara terus menerus (*persistent audio player*).

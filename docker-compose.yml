@@ -122,6 +122,17 @@ services:
       - R2_ENDPOINT=${R2_ENDPOINT}
       - R2_PUBLIC_URL=${R2_PUBLIC_URL}
 
+  # Frontend Web Service (SPA served via Nginx)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_URL=http://localhost:3000/api/v1
+
 volumes:
   mysql_data:
   redis_data:
