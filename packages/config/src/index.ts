@@ -39,7 +39,9 @@ function loadEnvFile() {
             if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
               val = val.slice(1, -1);
             }
-            process.env[key] = val;
+            if (process.env[key] === undefined) {
+              process.env[key] = val;
+            }
           }
         }
       }
@@ -50,6 +52,14 @@ function loadEnvFile() {
 }
 
 loadEnvFile();
+
+// Clean up surrounding quotes from all process.env variables (e.g. injected by Docker Compose)
+for (const key in process.env) {
+  const val = process.env[key];
+  if (val && ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))) {
+    process.env[key] = val.slice(1, -1);
+  }
+}
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

@@ -3,7 +3,7 @@ FROM oven/bun:alpine AS base
 WORKDIR /app
 
 # Install build dependencies (for compiling packages if needed)
-RUN apk add --no-cache python3 make g++ openjdk11-jre
+RUN apk add --no-cache python3 make g++ openjdk11-jre openssl
 
 # Copy workspace configurations and package files
 COPY package.json bun.lock tsconfig.json ./
