@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { prisma } from '@podmine/database';
 import { getEnv } from '@podmine/config';
-import { GeminiDriver, ElevenLabsDriver, MacSayDriver, R2Driver } from '@podmine/drivers';
+import { GeminiDriver, ElevenLabsDriver, MacSayDriver, PiperDriver, R2Driver } from '@podmine/drivers';
 import { JobPayload } from '@podmine/types';
 
 interface WavParsed {
@@ -78,17 +78,6 @@ export class PodcastProcessor extends WorkerHost {
         throw new Error(`Unsupported AI_SCRIPT_DRIVER: ${env.AI_SCRIPT_DRIVER}`);
       }
 
-      // 2. TTS Driver
-      let ttsDriver;
-      if (env.AI_TTS_DRIVER === 'elevenlabs') {
-        if (!env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY is not defined');
-        ttsDriver = new ElevenLabsDriver(env.ELEVENLABS_API_KEY, env.ELEVENLABS_VOICE_ID);
-      } else if (env.AI_TTS_DRIVER === 'say') {
-        ttsDriver = new MacSayDriver(env.ELEVENLABS_VOICE_ID || 'Samantha');
-      } else {
-        throw new Error(`Unsupported AI_TTS_DRIVER: ${env.AI_TTS_DRIVER}`);
-      }
-
       // 3. Storage Driver
       let storageDriver;
       if (env.STORAGE_DRIVER === 'r2') {
@@ -127,7 +116,7 @@ export class PodcastProcessor extends WorkerHost {
 
       // Step 2: Text To Speech
       this.logger.log(`Converting script to conversational audio with ${env.AI_TTS_DRIVER}...`);
-      
+
       const dialogueLines = script.dialogue || [];
       if (dialogueLines.length === 0 && script.content) {
         dialogueLines.push({ speaker: 'Host A', text: script.content });
@@ -151,7 +140,7 @@ export class PodcastProcessor extends WorkerHost {
           const voiceId = line.speaker === 'Host A'
             ? (env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM')
             : 'pNInz6obpgq5epa57xxz'; // Adam (Host B)
-          
+
           if (!env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY is not defined');
           lineTtsDriver = new ElevenLabsDriver(env.ELEVENLABS_API_KEY, voiceId);
         } else if (env.AI_TTS_DRIVER === 'say') {
@@ -160,6 +149,11 @@ export class PodcastProcessor extends WorkerHost {
             ? (env.ELEVENLABS_VOICE_ID || 'Samantha')
             : (isIndonesian ? 'Damayanti' : 'Daniel');
           lineTtsDriver = new MacSayDriver(voiceId);
+        } else if (env.AI_TTS_DRIVER === 'piper') {
+          const apiUrl = line.speaker === 'Host A'
+            ? (env.PIPER_HOST_A_URL || 'http://localhost:5001')
+            : (env.PIPER_HOST_B_URL || 'http://localhost:5002');
+          lineTtsDriver = new PiperDriver(apiUrl);
         } else {
           throw new Error(`Unsupported AI_TTS_DRIVER: ${env.AI_TTS_DRIVER}`);
         }
@@ -172,7 +166,7 @@ export class PodcastProcessor extends WorkerHost {
       let audioBuffer: Buffer;
       if (env.AI_TTS_DRIVER === 'elevenlabs') {
         audioBuffer = Buffer.concat(segmentBuffers);
-      } else if (env.AI_TTS_DRIVER === 'say') {
+      } else if (env.AI_TTS_DRIVER === 'say' || env.AI_TTS_DRIVER === 'piper') {
         audioBuffer = mergeWavBuffers(segmentBuffers);
       } else {
         throw new Error('Unsupported TTS merger');
@@ -219,7 +213,7 @@ export class PodcastProcessor extends WorkerHost {
       return { success: true, key: storageKey };
     } catch (error: any) {
       this.logger.error(`Error processing podcast generation job: ${error.message}`, error.stack);
-      
+
       // Update DB records to FAILED
       await prisma.podcast.update({
         where: { id: podcastId },

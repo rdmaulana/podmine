@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  mysql:
+  # Database Service (MySQL)
+  db:
     image: mysql:8.0
-    container_name: podmine-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -11,17 +11,117 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Redis Queue Service
   redis:
-    image: redis:7.0-alpine
-    container_name: podmine-redis
+    image: redis:alpine
     restart: always
     ports:
-      - "6380:6379"
+      - "6380:6379" # Bound to 6380 on host to avoid local conflicts, inside docker it is 6379
     volumes:
-      - redis-data:/data
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Piper TTS Host A (Female Voice: Lessac)
+  piper-host-a:
+    build:
+      context: .
+      dockerfile: Dockerfile.piper
+    restart: always
+    volumes:
+      - ./models:/app/models
+    command: [ "-m", "/app/models/en_US-lessac-medium.onnx" ]
+    ports:
+      - "5001:5000"
+
+  # Piper TTS Host B (Male Voice: Joe)
+  piper-host-b:
+    build:
+      context: .
+      dockerfile: Dockerfile.piper
+    restart: always
+    volumes:
+      - ./models:/app/models
+    command: [ "-m", "/app/models/en_US-joe-medium.onnx" ]
+    ports:
+      - "5002:5000"
+
+  # API Gateway Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - RUN_MIGRATIONS=true
+      - DATABASE_URL=mysql://root:root@db:3306/podmine
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=podmine-super-secret-key-change-me
+      - AI_SCRIPT_DRIVER=gemini
+      - AI_TTS_DRIVER=piper
+      - STORAGE_DRIVER=r2
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PIPER_HOST_A_URL=http://piper-host-a:5000
+      - PIPER_HOST_B_URL=http://piper-host-b:5000
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
+
+  # Background Processing Worker Service
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    command: [ "bun", "run", "--cwd", "apps/worker", "start:prod" ]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      piper-host-a:
+        condition: service_started
+      piper-host-b:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:root@db:3306/podmine
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=podmine-super-secret-key-change-me
+      - AI_SCRIPT_DRIVER=gemini
+      - AI_TTS_DRIVER=piper
+      - STORAGE_DRIVER=r2
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PIPER_HOST_A_URL=http://piper-host-a:5000
+      - PIPER_HOST_B_URL=http://piper-host-b:5000
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL}
 
 volumes:
-  mysql-data:
-  redis-data:
+  mysql_data:
+  redis_data:

@@ -81,6 +81,10 @@ export const envSchema = z.object({
   ELEVENLABS_API_KEY: z.string().optional(),
   ELEVENLABS_VOICE_ID: z.string().optional(), // optional voice override
 
+  // Piper TTS API
+  PIPER_HOST_A_URL: z.string().url().default('http://localhost:5001'),
+  PIPER_HOST_B_URL: z.string().url().default('http://localhost:5002'),
+
   // Cloudflare R2 / S3
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
