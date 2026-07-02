@@ -1,18 +1,22 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { LLMDriver, PodcastScript } from '@podmine/types';
 
 export class GeminiDriver implements LLMDriver {
-  private ai: GoogleGenAI;
+  private ai: GoogleGenerativeAI;
 
   constructor(apiKey: string) {
     if (!apiKey) {
       throw new Error('Gemini API key is required for GeminiDriver');
     }
-    this.ai = new GoogleGenAI({ apiKey });
+    this.ai = new GoogleGenerativeAI(apiKey);
   }
 
   async generateScript(prompt: string): Promise<PodcastScript> {
-    const systemInstruction = `
+    const model = this.ai.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+    });
+
+    const systemInstructionText = `
       You are an expert AI Podcast Host. Your job is to write a highly engaging podcast script based on the user's prompt.
       Return the output as a JSON object with the following schema:
       {
@@ -21,16 +25,16 @@ export class GeminiDriver implements LLMDriver {
       }
     `;
 
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      systemInstruction: systemInstructionText,
+      generationConfig: {
         responseMimeType: 'application/json',
-        systemInstruction: systemInstruction,
       },
     });
 
-    const responseText = response.text;
+    const response = result.response;
+    const responseText = response.text();
     if (!responseText) {
       throw new Error('Gemini returned an empty response');
     }

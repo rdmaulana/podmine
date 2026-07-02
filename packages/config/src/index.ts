@@ -17,12 +17,29 @@ function loadEnvFile() {
           if (firstEqual !== -1) {
             const key = trimmed.slice(0, firstEqual).trim();
             let val = trimmed.slice(firstEqual + 1).trim();
+            
+            // Strip inline comments if present
+            const hashIndex = val.indexOf('#');
+            if (hashIndex !== -1) {
+              if (val.startsWith('"')) {
+                const closingQuote = val.indexOf('"', 1);
+                if (closingQuote !== -1) {
+                  val = val.substring(0, closingQuote + 1).trim();
+                }
+              } else if (val.startsWith("'")) {
+                const closingQuote = val.indexOf("'", 1);
+                if (closingQuote !== -1) {
+                  val = val.substring(0, closingQuote + 1).trim();
+                }
+              } else {
+                val = val.substring(0, hashIndex).trim();
+              }
+            }
+
             if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
               val = val.slice(1, -1);
             }
-            if (!process.env[key]) {
-              process.env[key] = val;
-            }
+            process.env[key] = val;
           }
         }
       }
