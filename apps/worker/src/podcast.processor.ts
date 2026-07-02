@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { prisma } from '@podmine/database';
 import { getEnv } from '@podmine/config';
-import { GeminiDriver, ElevenLabsDriver, R2Driver } from '@podmine/drivers';
+import { GeminiDriver, ElevenLabsDriver, MacSayDriver, R2Driver } from '@podmine/drivers';
 import { JobPayload } from '@podmine/types';
 
 @Processor('podcast-generation')
@@ -42,6 +42,8 @@ export class PodcastProcessor extends WorkerHost {
       if (env.AI_TTS_DRIVER === 'elevenlabs') {
         if (!env.ELEVENLABS_API_KEY) throw new Error('ELEVENLABS_API_KEY is not defined');
         ttsDriver = new ElevenLabsDriver(env.ELEVENLABS_API_KEY, env.ELEVENLABS_VOICE_ID);
+      } else if (env.AI_TTS_DRIVER === 'say') {
+        ttsDriver = new MacSayDriver(env.ELEVENLABS_VOICE_ID || 'Samantha');
       } else {
         throw new Error(`Unsupported AI_TTS_DRIVER: ${env.AI_TTS_DRIVER}`);
       }
