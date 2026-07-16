@@ -10,10 +10,7 @@
     "dev:api": "bun --filter @podmine/api dev",
     "dev:worker": "bun --filter @podmine/worker dev",
     "dev:web": "bun --filter @podmine/web dev",
-    "build": "bun run build:all",
-    "db:migrate": "bun --filter @podmine/database prisma migrate dev",
-    "db:generate": "bun --filter @podmine/database prisma generate",
-    "db:studio": "bun --filter @podmine/database prisma studio"
+    "build": "bun run build:all"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

@@ -68,6 +68,7 @@ export const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string().url().default('mysql://root:root@localhost:3306/podmine'),
+  RUN_MIGRATIONS: z.string().optional(),
 
   // Redis
   REDIS_HOST: z.string().default('localhost'),

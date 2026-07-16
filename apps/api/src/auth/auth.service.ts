@@ -1,16 +1,24 @@
 import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { prisma } from '@podmine/database';
+import { User, RefreshToken } from '@podmine/database';
 import { RegisterDto, LoginDto, AuthResponseDto } from './dto/auth.dto';
 import { getEnv } from '@podmine/config';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private refreshTokenRepository: Repository<RefreshToken>,
+  ) {}
 
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
-    const existing = await prisma.user.findUnique({
+    const existing = await this.userRepository.findOne({
       where: { email: dto.email },
     });
 
@@ -21,18 +29,17 @@ export class AuthService {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(dto.password, salt);
 
-    const user = await prisma.user.create({
-      data: {
-        email: dto.email,
-        passwordHash,
-      },
+    const user = this.userRepository.create({
+      email: dto.email,
+      passwordHash,
     });
+    await this.userRepository.save(user);
 
     return this.generateTokens(user.id, user.email);
   }
 
   async login(dto: LoginDto): Promise<AuthResponseDto> {
-    const user = await prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email: dto.email },
     });
 
@@ -49,9 +56,9 @@ export class AuthService {
   }
 
   async refresh(token: string): Promise<AuthResponseDto> {
-    const record = await prisma.refreshToken.findUnique({
+    const record = await this.refreshTokenRepository.findOne({
       where: { token },
-      include: { user: true },
+      relations: ['user'],
     });
 
     if (!record || record.expiresAt < new Date()) {
@@ -59,7 +66,7 @@ export class AuthService {
     }
 
     // Delete the used refresh token to implement rotation (optional, but safe)
-    await prisma.refreshToken.delete({ where: { id: record.id } });
+    await this.refreshTokenRepository.delete({ id: record.id });
 
     return this.generateTokens(record.user.id, record.user.email);
   }
@@ -93,13 +100,12 @@ export class AuthService {
     }
 
     // Save refresh token to DB
-    await prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId,
-        expiresAt,
-      },
+    const tokenRecord = this.refreshTokenRepository.create({
+      token: refreshToken,
+      userId,
+      expiresAt,
     });
+    await this.refreshTokenRepository.save(tokenRecord);
 
     return {
       accessToken,

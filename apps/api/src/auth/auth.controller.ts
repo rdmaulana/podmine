@@ -14,8 +14,8 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email is already registered' })
   async register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
     // TODO: Add registration (for now we don't accept signups)
-    // return this.authService.register(dto);
-    throw new ForbiddenException('Registration is currently closed');
+    return this.authService.register(dto);
+    // throw new ForbiddenException('Registration is currently closed');
   }
 
   @Post('login')

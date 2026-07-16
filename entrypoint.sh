@@ -3,10 +3,9 @@
 
 set -e
 
-# Run migrations only if requested (ideal for API gateway startup)
+# Schema sync is handled automatically by TypeORM when RUN_MIGRATIONS is set to true on startup
 if [ "$RUN_MIGRATIONS" = "true" ]; then
-  echo "🚀 Running database migrations (Prisma)..."
-  bun --cwd packages/database prisma migrate deploy
+  echo "🚀 Database schema sync enabled via TypeORM..."
 fi
 
 # Run the passed command (e.g., bun run --cwd apps/api start:prod)

@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Queue } from 'bullmq';
-import { prisma } from '@podmine/database';
+import { Podcast, Job, PodcastStatus } from '@podmine/database';
 import { getEnv } from '@podmine/config';
 import { R2Driver } from '@podmine/drivers';
 import { GeneratePodcastDto, PodcastQueryDto } from './dto/podcast.dto';
@@ -12,17 +14,18 @@ export class PodcastService {
   constructor(
     @InjectQueue('podcast-generation')
     private readonly podcastQueue: Queue<JobPayload>,
+    @InjectRepository(Podcast)
+    private readonly podcastRepository: Repository<Podcast>,
   ) {}
 
   async generate(dto: GeneratePodcastDto, userId: string) {
     // Create the podcast record in database first
-    const podcast = await prisma.podcast.create({
-      data: {
-        prompt: dto.prompt,
-        status: 'QUEUED',
-        userId,
-      },
+    const podcast = this.podcastRepository.create({
+      prompt: dto.prompt,
+      status: PodcastStatus.QUEUED,
+      userId,
     });
+    await this.podcastRepository.save(podcast);
 
     // Pushes the job to the BullMQ queue
     await this.podcastQueue.add(
@@ -43,30 +46,28 @@ export class PodcastService {
     const { search, page = 1, limit = 10, status, myPodcasts } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const queryBuilder = this.podcastRepository.createQueryBuilder('podcast');
+
     if (myPodcasts === 'true' && userId) {
-      where.userId = userId;
+      queryBuilder.andWhere('podcast.userId = :userId', { userId });
     }
     if (status) {
-      where.status = status;
+      queryBuilder.andWhere('podcast.status = :status', { status });
     }
 
     if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { prompt: { contains: search } },
-      ];
+      queryBuilder.andWhere(
+        '(podcast.title LIKE :search OR podcast.prompt LIKE :search)',
+        { search: `%${search}%` }
+      );
     }
 
-    const [total, data] = await prisma.$transaction([
-      prisma.podcast.count({ where }),
-      prisma.podcast.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-    ]);
+    queryBuilder
+      .orderBy('podcast.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
       total,
@@ -78,15 +79,11 @@ export class PodcastService {
   }
 
   async findOne(id: string, userId?: string) {
-    const podcast = await prisma.podcast.findUnique({
-      where: { id },
-      include: {
-        jobs: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-    });
+    const podcast = await this.podcastRepository.createQueryBuilder('podcast')
+      .leftJoinAndSelect('podcast.jobs', 'job')
+      .where('podcast.id = :id', { id })
+      .orderBy('job.createdAt', 'DESC')
+      .getOne();
 
     if (!podcast) {
       throw new NotFoundException(`Podcast with ID ${id} not found`);

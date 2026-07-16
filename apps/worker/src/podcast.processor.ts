@@ -1,7 +1,9 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
-import { prisma } from '@podmine/database';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Job as BullJob } from 'bullmq';
+import { Podcast, Job as DbJob, PodcastStatus } from '@podmine/database';
 import { getEnv } from '@podmine/config';
 import { GeminiDriver, ElevenLabsDriver, MacSayDriver, PiperDriver, R2Driver } from '@podmine/drivers';
 import { JobPayload } from '@podmine/types';
@@ -51,19 +53,27 @@ function mergeWavBuffers(buffers: Buffer[]): Buffer {
 export class PodcastProcessor extends WorkerHost {
   private readonly logger = new Logger(PodcastProcessor.name);
 
-  async process(job: Job<JobPayload>): Promise<any> {
+  constructor(
+    @InjectRepository(Podcast)
+    private readonly podcastRepository: Repository<Podcast>,
+    @InjectRepository(DbJob)
+    private readonly jobRepository: Repository<DbJob>,
+  ) {
+    super();
+  }
+
+  async process(job: BullJob<JobPayload>): Promise<any> {
     const { podcastId, prompt } = job.data;
     this.logger.log(`Starting podcast generation job ${job.id} for podcast ID: ${podcastId}`);
 
     // Create Job tracking record in DB
-    const dbJob = await prisma.job.create({
-      data: {
-        id: job.id || undefined,
-        podcastId,
-        progress: 10,
-        logs: 'Job initialized. Starting generation...',
-      },
+    const dbJob = this.jobRepository.create({
+      id: job.id || undefined,
+      podcastId,
+      progress: 10,
+      logs: 'Job initialized. Starting generation...',
     });
+    await this.jobRepository.save(dbJob);
 
     try {
       const env = getEnv();
@@ -73,6 +83,7 @@ export class PodcastProcessor extends WorkerHost {
       let llmDriver;
       if (env.AI_SCRIPT_DRIVER === 'gemini') {
         if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not defined');
+        this.logger.log(`GEMINI_API_KEY loaded: ${env.GEMINI_API_KEY}`);
         llmDriver = new GeminiDriver(env.GEMINI_API_KEY);
       } else {
         throw new Error(`Unsupported AI_SCRIPT_DRIVER: ${env.AI_SCRIPT_DRIVER}`);
@@ -95,10 +106,10 @@ export class PodcastProcessor extends WorkerHost {
       }
 
       // Update podcast status to PROCESSING
-      await prisma.podcast.update({
-        where: { id: podcastId },
-        data: { status: 'PROCESSING' },
-      });
+      await this.podcastRepository.update(
+        { id: podcastId },
+        { status: PodcastStatus.PROCESSING }
+      );
 
       await this.updateJob(dbJob.id, 20, 'Initialized drivers successfully. Generating script...');
 
@@ -108,10 +119,10 @@ export class PodcastProcessor extends WorkerHost {
       this.logger.log(`Script generated successfully. Title: "${script.title}"`);
 
       // Update podcast title and progress
-      await prisma.podcast.update({
-        where: { id: podcastId },
-        data: { title: script.title },
-      });
+      await this.podcastRepository.update(
+        { id: podcastId },
+        { title: script.title }
+      );
       await this.updateJob(dbJob.id, 50, `Script generated: "${script.title}". Starting Text-To-Speech conversion...`);
 
       // Step 2: Text To Speech
@@ -176,7 +187,6 @@ export class PodcastProcessor extends WorkerHost {
       await this.updateJob(dbJob.id, 75, 'Audio synthesized successfully. Uploading to storage...');
 
       // Step 3: Upload to Cloudflare R2
-      // Detect audio format (magic bytes) to set correct MIME type and file extension
       let mimeType = 'audio/mpeg';
       let extension = 'mp3';
       if (audioBuffer.length > 12 && audioBuffer.toString('ascii', 0, 4) === 'RIFF' && audioBuffer.toString('ascii', 8, 12) === 'WAVE') {
@@ -199,13 +209,13 @@ export class PodcastProcessor extends WorkerHost {
         dbAudioUrl = `${baseUrl}/${storageKey}`;
       }
 
-      await prisma.podcast.update({
-        where: { id: podcastId },
-        data: {
-          status: 'COMPLETED',
+      await this.podcastRepository.update(
+        { id: podcastId },
+        {
+          status: PodcastStatus.COMPLETED,
           audioUrl: dbAudioUrl,
-        },
-      });
+        }
+      );
 
       await this.updateJob(dbJob.id, 100, 'Podcast generated and stored successfully!');
       this.logger.log(`Job ${job.id} completed successfully for podcast ID: ${podcastId}`);
@@ -215,33 +225,33 @@ export class PodcastProcessor extends WorkerHost {
       this.logger.error(`Error processing podcast generation job: ${error.message}`, error.stack);
 
       // Update DB records to FAILED
-      await prisma.podcast.update({
-        where: { id: podcastId },
-        data: { status: 'FAILED' },
-      });
+      await this.podcastRepository.update(
+        { id: podcastId },
+        { status: PodcastStatus.FAILED }
+      );
 
-      await prisma.job.update({
-        where: { id: dbJob.id },
-        data: {
+      await this.jobRepository.update(
+        { id: dbJob.id },
+        {
           progress: 100,
           logs: `FAILED: ${error.message}\nStack: ${error.stack}`,
-        },
-      });
+        }
+      );
 
       throw error;
     }
   }
 
   private async updateJob(id: string, progress: number, logMessage: string) {
-    const existingJob = await prisma.job.findUnique({ where: { id } });
+    const existingJob = await this.jobRepository.findOne({ where: { id } });
     const updatedLogs = existingJob?.logs ? `${existingJob.logs}\n[${new Date().toISOString()}] ${logMessage}` : logMessage;
 
-    await prisma.job.update({
-      where: { id },
-      data: {
+    await this.jobRepository.update(
+      { id },
+      {
         progress,
         logs: updatedLogs,
-      },
-    });
+      }
+    );
   }
 }

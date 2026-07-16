@@ -1,5 +1,23 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, Res, Req, HttpStatus, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Res,
+  Req,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { Response, Request } from 'express';
 import { PodcastService } from './podcast.service';
 import { GeneratePodcastDto, PodcastQueryDto } from './dto/podcast.dto';
@@ -83,7 +101,7 @@ export class PodcastController {
     res.setHeader('Accept-Ranges', 'bytes');
     if (contentType) res.setHeader('Content-Type', contentType);
     if (contentLength) res.setHeader('Content-Length', contentLength);
-    
+
     if (range && contentRange) {
       res.setHeader('Content-Range', contentRange);
       res.status(HttpStatus.PARTIAL_CONTENT);
