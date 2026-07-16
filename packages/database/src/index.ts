@@ -1,23 +1,7 @@
+import 'reflect-metadata';
 import '@podmine/config';
-import { PrismaClient } from '@prisma/client';
 
-export * from '@prisma/client';
-
-let prisma: PrismaClient;
-
-if (process.env.NODE_ENV === 'production') {
-  prisma = new PrismaClient();
-} else {
-  // Prevent multiple instances of Prisma Client in development due to hot reloading
-  const globalWithPrisma = global as typeof globalThis & {
-    prisma?: PrismaClient;
-  };
-  if (!globalWithPrisma.prisma) {
-    globalWithPrisma.prisma = new PrismaClient({
-      log: ['query', 'info', 'warn', 'error'],
-    });
-  }
-  prisma = globalWithPrisma.prisma;
-}
-
-export { prisma };
+export * from './entities/user.entity';
+export * from './entities/refresh-token.entity';
+export * from './entities/podcast.entity';
+export * from './entities/job.entity';

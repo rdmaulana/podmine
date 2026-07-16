@@ -32,6 +32,9 @@
     "@podmine/config": "workspace:*",
     "@podmine/database": "workspace:*",
     "@podmine/types": "workspace:*",
+    "@nestjs/typeorm": "^11.0.0",
+    "typeorm": "^0.3.20",
+    "mysql2": "^3.9.8",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

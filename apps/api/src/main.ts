@@ -24,8 +24,8 @@ async function bootstrap() {
 
   // Enable CORS
   const env = getEnv();
-  const allowedOrigins = env.FRONTEND_URL 
-    ? env.FRONTEND_URL.split(',').map(url => url.trim()) 
+  const allowedOrigins = env.FRONTEND_URL
+    ? env.FRONTEND_URL.split(',').map(url => url.trim())
     : '*';
 
   app.enableCors({
@@ -51,7 +51,7 @@ async function bootstrap() {
       'JWT-auth', // This name must match @ApiBearerAuth()
     )
     .build();
-    
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
