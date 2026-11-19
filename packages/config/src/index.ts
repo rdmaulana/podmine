@@ -76,7 +76,15 @@ export const envSchema = z.object({
   REDIS_PASSWORD: z.string().optional(),
 
   // JWT Auth
-  JWT_SECRET: z.string().default('podmine-super-secret-key-change-me'),
+  JWT_SECRET: z
+    .string()
+    .min(32, 'JWT_SECRET must be at least 32 characters')
+    .refine(
+      (v) =>
+        v !== 'podmine-super-secret-key-change-me' &&
+        !v.startsWith('CHANGE_ME'),
+      { message: 'JWT_SECRET still holds a placeholder; generate one with: openssl rand -base64 48' },
+    ),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 

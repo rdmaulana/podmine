@@ -111,7 +111,8 @@ Ensure you have the following installed on your machine:
    DATABASE_URL="mysql://root:root@localhost:3306/podmine"
    REDIS_HOST="localhost"
    REDIS_PORT=6380
-   JWT_SECRET="podmine-super-secret-key-change-me"
+   # Required: >= 32 chars. Generate one with: openssl rand -base64 48
+   JWT_SECRET="CHANGE_ME_openssl_rand_base64_48"
    
    # AI Script Driver
    AI_SCRIPT_DRIVER="gemini"
