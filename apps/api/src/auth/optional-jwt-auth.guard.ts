@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { getEnv } from '@podmine/config';
 
 @Injectable()
 export class OptionalJwtAuthGuard implements CanActivate {
@@ -13,7 +14,7 @@ export class OptionalJwtAuthGuard implements CanActivate {
     if (token) {
       try {
         const payload = await this.jwtService.verifyAsync(token, {
-          secret: process.env.JWT_SECRET || 'podmine-super-secret-key-change-me',
+          secret: getEnv().JWT_SECRET,
         });
         // Attach the user details to the request object if token is valid
         (request as any).user = payload;

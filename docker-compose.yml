@@ -71,7 +71,7 @@ services:
       - DATABASE_URL=mysql://root:root@db:3306/podmine
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=podmine-super-secret-key-change-me
+      - JWT_SECRET=${JWT_SECRET}
       - AI_SCRIPT_DRIVER=gemini
       - AI_TTS_DRIVER=piper
       - STORAGE_DRIVER=r2
@@ -106,7 +106,7 @@ services:
       - DATABASE_URL=mysql://root:root@db:3306/podmine
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=podmine-super-secret-key-change-me
+      - JWT_SECRET=${JWT_SECRET}
       - AI_SCRIPT_DRIVER=gemini
       - AI_TTS_DRIVER=piper
       - STORAGE_DRIVER=r2
