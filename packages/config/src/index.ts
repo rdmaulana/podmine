@@ -80,10 +80,10 @@ export const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  // Drivers Configuration
-  AI_SCRIPT_DRIVER: z.enum(['gemini', 'openai', 'ollama']).default('gemini'),
-  AI_TTS_DRIVER: z.enum(['elevenlabs', 'piper', 'kokoro', 'say']).default('elevenlabs'),
-  STORAGE_DRIVER: z.enum(['r2', 'local']).default('r2'),
+  // Drivers Configuration (only these are implemented)
+  AI_SCRIPT_DRIVER: z.enum(['gemini']).default('gemini'),
+  AI_TTS_DRIVER: z.enum(['elevenlabs', 'piper', 'say']).default('elevenlabs'),
+  STORAGE_DRIVER: z.enum(['r2']).default('r2'),
   R2_PUBLIC_URL: z.string().url().optional(),
 
   // Gemini API

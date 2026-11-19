@@ -83,7 +83,6 @@ export class PodcastProcessor extends WorkerHost {
       let llmDriver;
       if (env.AI_SCRIPT_DRIVER === 'gemini') {
         if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not defined');
-        this.logger.log(`GEMINI_API_KEY loaded: ${env.GEMINI_API_KEY}`);
         llmDriver = new GeminiDriver(env.GEMINI_API_KEY);
       } else {
         throw new Error(`Unsupported AI_SCRIPT_DRIVER: ${env.AI_SCRIPT_DRIVER}`);

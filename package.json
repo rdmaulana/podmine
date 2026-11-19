@@ -10,9 +10,12 @@
     "dev:api": "bun --filter @podmine/api dev",
     "dev:worker": "bun --filter @podmine/worker dev",
     "dev:web": "bun --filter @podmine/web dev",
-    "build": "bun run build:all"
+    "build": "bun run build:all",
+    "build:all": "bun run --filter '*' build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && bun run --filter '*' typecheck"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "@types/node": "^24.0.0"
   }
 }

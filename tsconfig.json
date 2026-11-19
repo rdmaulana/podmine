@@ -19,5 +19,6 @@
       "@podmine/drivers": ["packages/drivers/src/index.ts"]
     }
   },
+  "include": ["packages/*/src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
