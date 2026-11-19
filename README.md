@@ -6,7 +6,7 @@
 [![NestJS](https://img.shields.io/badge/Framework-NestJS-red?logo=nestjs)](https://nestjs.com/)
 [![React](https://img.shields.io/badge/Frontend-React-blue?logo=react)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Container-Docker-blue?logo=docker)](https://www.docker.com/)
-[![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748?logo=prisma)](https://www.prisma.io/)
+[![TypeORM](https://img.shields.io/badge/ORM-TypeORM-FE0803)](https://typeorm.io/)
 
 PODMINE is a modern, open-source platform designed for building AI-powered podcast generator applications. Following the **"Bring Your Own AI"** philosophy (Provider Agnostic), this platform abstracts integrations with AI providers (LLM, TTS, Storage) so that developers can switch models or providers (like local Piper TTS vs ElevenLabs) at any time through simple `.env` configurations without modifying any core business logic.
 
@@ -19,7 +19,7 @@ PODMINE implements **Clean Architecture** patterns, strictly separating core bus
 ```mermaid
 graph TD
     Client[React Frontend: apps/web] -->|1. REST API| API[API Gateway: apps/api]
-    API -->|2. Create Record & Queue Job| DB[(MySQL: Prisma)]
+    API -->|2. Create Record & Queue Job| DB[(MySQL: TypeORM)]
     API -->|3. Push Task| Redis[(Redis: BullMQ)]
     
     subgraph Background Worker [apps/worker]
@@ -51,7 +51,7 @@ podmine/
 │   └── web/             # React + Vite + TanStack Query Frontend (Spotify-like dark-orange SPA UI)
 ├── packages/
 │   ├── config/          # Centralized configuration schema & validation via Zod (safeguards envs)
-│   ├── database/        # Shared Prisma schema, migrations, and DB client singleton
+│   ├── database/        # Shared TypeORM entities and DB client
 │   ├── drivers/         # Extensible driver manager (Gemini, Piper, ElevenLabs, Cloudflare R2)
 │   └── types/           # Shared TypeScript interfaces & declarations
 ├── docker-compose.yml   # Multi-container local environment (MySQL, Redis, Piper TTS A & B, Nginx Web)
@@ -90,7 +90,7 @@ Ensure you have the following installed on your machine:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/podmine.git
+   git clone https://github.com/rdmaulana/podmine.git
    cd podmine
    ```
 
@@ -131,10 +131,12 @@ Ensure you have the following installed on your machine:
    R2_PUBLIC_URL="https://cdn.podmine.xyz"
    ```
 
-5. **Run DB Migrations**:
-   ```bash
-   bun db:migrate
+5. **Create the Database Schema**:
+   TypeORM syncs the schema on startup when `RUN_MIGRATIONS=true`. Set it in `.env` for the first run:
+   ```env
+   RUN_MIGRATIONS=true
    ```
+   Leave it unset (or `false`) afterwards so production startups never auto-alter tables.
 
 ---
 

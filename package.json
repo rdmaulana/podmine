@@ -11,11 +11,11 @@
     "dev:worker": "bun --filter @podmine/worker dev",
     "dev:web": "bun --filter @podmine/web dev",
     "build": "bun run build:all",
-    "db:migrate": "bun --filter @podmine/database prisma migrate dev",
-    "db:generate": "bun --filter @podmine/database prisma generate",
-    "db:studio": "bun --filter @podmine/database prisma studio"
+    "build:all": "bun run --filter '*' build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && bun run --filter '*' typecheck"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "@types/node": "^24.0.0"
   }
 }

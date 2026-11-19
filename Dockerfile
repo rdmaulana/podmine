@@ -21,9 +21,6 @@ RUN bun install --frozen-lockfile
 # Copy all source files
 COPY . .
 
-# Generate Prisma Client
-RUN bun --cwd packages/database prisma generate
-
 # Build workspaces
 RUN bun run --cwd packages/config build || true
 RUN bun run --cwd packages/types build || true
