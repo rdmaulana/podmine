@@ -1,0 +1,45 @@
+{
+  "title": "Why the sky is blue, and why sunsets are not",
+  "turns": [
+    {
+      "speaker": "Host A",
+      "text": "[curious] Every kid asks why the sky is blue, and every adult gives the same answer, and I think the answer is wrong."
+    },
+    {
+      "speaker": "Host B",
+      "text": "It's not wrong, it's just incomplete. The usual answer is Rayleigh scattering, and that part is true."
+    },
+    {
+      "speaker": "Host A",
+      "text": "So what's missing?"
+    },
+    {
+      "speaker": "Host B",
+      "text": "The part that surprises people: the sky isn't blue because blue light is scattered more. It's blue because of how much of it reaches your eye from every direction at once."
+    },
+    {
+      "speaker": "Host A",
+      "text": "That sounds like the same thing said more slowly."
+    },
+    {
+      "speaker": "Host B",
+      "text": "[laughs] Fair. Here's the difference. Scattering is strongest at short wavelengths, so blue photons bounce around the atmosphere far more than red ones. They arrive at your eye from all over the sky, not just from the sun. That's why the whole dome glows instead of one bright spot."
+    },
+    {
+      "speaker": "Host A",
+      "text": "And at sunset the light takes a much longer path through the atmosphere, so the blue is scattered out before it reaches me."
+    },
+    {
+      "speaker": "Host B",
+      "text": "Exactly. What's left is the long end of the spectrum. Orange, then red. The sunset is the sky's leftovers."
+    },
+    {
+      "speaker": "Host A",
+      "text": "So the sky is blue for the same reason sunsets are orange. One mechanism, two views of it."
+    },
+    {
+      "speaker": "Host B",
+      "text": "One mechanism. And on Mars the sky is butterscotch, because the dust particles are the wrong size for this to work the same way."
+    }
+  ]
+}
